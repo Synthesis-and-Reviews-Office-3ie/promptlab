@@ -36,12 +36,12 @@ flowchart TD
     EX --> SC["Score vs truth — concordance-aware:<br/>accents/mojibake folded · 'A or B' = either accepted"]
     SC --> LOG["Log per run:<br/>outcome · honesty · cost · CO₂e"]
     SC --> JUDGE["Cross-family LLM judge<br/>(concordance)"]
-    GATE{"Per-model gate:<br/>F1 ≥ 90% + recall ≥ 85% (lists)<br/>accuracy ≥ 90% (categorical)?"}
+    GATE{"Per-model gate:<br/>F1 ≥ 90% + recall ≥ 85% (lists, incl. sub_sector)<br/>Cohen's κ ≥ 0.80 (sector_name)?"}
     JUDGE -. corroborates .-> GATE
     GATE -- "below gate" --> REFLECT
     GATE -- "BEST model passes" --> STAGE{"Sample size<br/>reached this stage?"}
-    STAGE -- "100 → grow" --> G200["Extract to 200 refs"]
-    STAGE -- "200 (capped)" --> DONE(["Production-ready<br/>(field, model) pairs"])
+    STAGE -- "100 (only stage today)" --> DONE(["Production-ready<br/>(field, model) pairs"])
+    STAGE -. "stage 200 unreachable until<br/>100 more GT records are annotated" .-> G200["Extract to 200 refs"]
     G200 --> EX
     subgraph OPT["Optimizer (autonomous, per-model)"]
       direction TB

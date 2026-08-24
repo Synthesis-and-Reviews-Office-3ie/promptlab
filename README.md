@@ -45,12 +45,16 @@ dashboard" panel.
 Metrics are tiered so the one that matters leads:
 
 - **Quality gate (per model)** — the production metric. For **list fields** (authors, affiliations,
-  countries): **element-level F1 ≥ 90% AND recall ≥ 85%**. The recall floor is separate because F1
-  alone allows a model to "pass" by over-predicting while still missing 20% of true values — missing
-  values are invisible in QA while extras are visible and fixable. For **categorical fields**
-  (sector, sub-sector): **accuracy ≥ 90%** (no recall concept for a single-pick classification).
-- **Explains the gate** — precision & recall (lists) or **Cohen's κ** (categorical), with 95%
-  Wilson confidence intervals.
+  countries, and sub-sector, which the 3ie protocol makes multi-valued): **element-level F1 ≥ 90%
+  AND recall ≥ 85%**. The recall floor is separate because F1 alone allows a model to "pass" by
+  over-predicting while still missing 20% of true values — missing values are invisible in QA while
+  extras are visible and fixable. For the one **single-pick categorical field** (sector):
+  **Cohen's κ ≥ 0.80**, with a macro-sensitivity floor of 0.70 where class support allows. κ rather
+  than raw accuracy because accuracy isn't comparable across fields with different numbers of
+  classes — a fixed 90% bar would demand very different amounts of real skill depending only on how
+  many options a field happens to have, while κ is chance-corrected.
+- **Explains the gate** — precision & recall (lists) or accuracy and per-class sensitivity
+  (categorical), with 95% Wilson confidence intervals.
 - **Corroboration** — cross-family **LLM-judge concordance**; confidence **calibration** (Brier).
 - **Honesty** — abstain / wrong / hallucination mix and an honesty-adjusted score (which *steers
   the optimizer*), plus excerpt-verification (anti-fabrication).

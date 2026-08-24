@@ -1,26 +1,21 @@
-# AGENTS.md — build, test, and lint commands for PromptLab
+# AGENTS.md
 
-## Frontend (React + Vite + TypeScript)
+Agent instructions for this repo live in **[`CLAUDE.md`](CLAUDE.md)** — build/run commands,
+governance rules, the quality gate, optimizer stop rules, and the Windows/flyctl gotchas.
 
-```bash
-npm install              # install deps
-npm run dev              # dev server at http://localhost:5173/promptlab/
-npm run build            # tsc -b && vite build
-npm run lint             # oxlint
-npm test                 # vitest run (single pass)
-npm run test:watch       # vitest in watch mode
-```
+Read that file. Nothing project-specific is duplicated here on purpose: two copies of the same
+facts is how the previous version of these instructions ended up describing a gate, a model roster
+and a deploy procedure that the code had already moved past.
 
-Type-check: `npx tsc -b` (runs as part of `npm run build`).
-
-## Backend (Python + FastAPI)
+Quick reference only:
 
 ```bash
-cd backend
-pip install -r requirements-dev.txt   # includes pytest
-pytest                                 # run all tests
-pytest tests/test_scoring.py -v        # run a single file
+npm install && npm run dev     # frontend → http://localhost:5173/promptlab/
+npm run build                  # tsc -b && vite build
+npm run lint                   # oxlint
+npm test                       # vitest run
+
+cd backend && pytest           # backend tests
 ```
 
-The backend pytest config lives in `backend/pyproject.toml` (`pythonpath = [".."]`
-so tests import from `backend.app.*`).
+Backend scripts run as packages from the repo root: `.venv/Scripts/python -m backend.scripts.<name>`.

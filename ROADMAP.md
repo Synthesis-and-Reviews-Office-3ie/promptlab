@@ -321,7 +321,8 @@ production-readiness level.
 ## Recently shipped (2026-07-08) — fresh start, metric overhaul, roster pruning
 
 **Fresh start:** Full DB wipe after a complete first production run (50,535 runs archived to
-`../DEP/backups/promptlab_prod_20260708_214047.db`). GT + v1 shared baselines preserved.
+`promptlab_prod_20260708_214047.db`, now held outside OneDrive at
+`C:\Users\LucasSempe\promptlab-local-data\backups\`). GT + v1 shared baselines preserved.
 
 **Roster pruned to 13 models:** Retired glm-4.7-flash (96-100% error rate), gemini-pro-latest
 (54% errors, 0.075 F1 on authors), kimi-k2.5 (25-36% errors), kimi-latest (40-59% errors),
