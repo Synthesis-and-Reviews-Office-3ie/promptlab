@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from collections import Counter
 import json
 import sys
 from pathlib import Path
@@ -53,21 +54,22 @@ def _load_gt(conn, field_name: str) -> list[tuple[int, object]]:
 
 
 def _as_items(value) -> list[str]:
-    if isinstance(value, list):
-        return [str(x) for x in value]
-    if value in (None, ""):
-        return []
-    return [str(value)]
+    # Delegate to the scorer. Multi-valued reference data is recorded both as a
+    # JSON array and as one pipe-joined string; treating the joined form as a single
+    # category made every legitimate two-value sub_sector entry look like an illegal
+    # compound needing a manual pick. sub_sector became list_categorical on
+    # 2026-08-21, so those 183 proposals would have deleted a real second value.
+    return scoring.as_value_list(value)
 
 
 def _best_match(value: str, allowed: list[str]) -> tuple[str, float]:
-    """Closest allowed option to `value`, matched on the folded/lowered form so
-    accents and Oxford-comma noise don't block the match; returns the canonical
-    (un-folded) allowed string and the score."""
-    target = scoring.fold_display(value).lower()
+    """Closest allowed option to `value`, matched on the same folded form the
+    scorer's categorical comparison uses, so punctuation and the two spellings of
+    "and" cannot block a match; returns the canonical allowed string and the score."""
+    target = scoring.fold_category(value)
     best, best_score = "", -1.0
     for canon in allowed:
-        s = fuzz.token_sort_ratio(target, scoring.fold_display(canon).lower())
+        s = fuzz.token_sort_ratio(target, scoring.fold_category(canon))
         if s > best_score:
             best, best_score = canon, s
     return best, best_score
@@ -78,39 +80,73 @@ def propose_field(conn, field_name: str, min_score: float, out: list[dict]) -> N
     if not spec.taxonomy_key:
         return
     allowed = get_options(spec.taxonomy_key)
-    allowed_folded = {scoring.fold_display(a).lower() for a in allowed}
+    allowed_folded = {scoring.fold_category(a) for a in allowed}
     data = _load_gt(conn, field_name)
+    multi_valued = spec.value_type != "single_categorical"
 
-    print(f"\n{'=' * 80}\nFIELD: {field_name}  ({len(allowed)} allowed options)")
-    n_ok = n_map = n_pipe = n_unsure = 0
+    # How often each spelling is actually used. A value the reference data uses
+    # widely is evidence about the DATA; an option almost nothing uses is evidence
+    # about the VOCABULARY. A fuzzy matcher cannot tell those apart, and getting it
+    # backwards is how this script came to propose rewriting 12 correct
+    # 'Housing construction' records onto the option list's typo,
+    # 'Housing contruction', which only 2 records use.
+    usage: Counter = Counter()
+    for _rid, _value in data:
+        for _item in _as_items(_value):
+            usage[scoring.fold_category(_item)] += 1
+
+    print()
+    print("=" * 80)
+    print(f"FIELD: {field_name}  ({len(allowed)} allowed options)")
+    n_ok = n_map = n_multi = n_unsure = n_vocab = 0
     for rid, value in data:
-        for item in _as_items(value):
-            folded = scoring.fold_display(item).lower()
+        items = _as_items(value)
+        if len(items) > 1 and not multi_valued:
+            # Several values in a genuinely single-valued field: still illegal, and
+            # the script cannot know which one was meant.
+            valid = [p for p in items if scoring.fold_category(p) in allowed_folded]
+            n_multi += 1
+            print(f"  rec {rid}: {value!r}")
+            print(f"      -> MANUAL pick one of: {valid or items}")
+            out.append({"field": field_name, "record_id": rid, "current": str(value),
+                        "proposed": " OR ".join(valid or items), "score": "",
+                        "action": "manual_pick"})
+            continue
+        for item in items:
+            folded = scoring.fold_category(item)
             if folded in allowed_folded:
                 n_ok += 1
                 continue
-            if "|" in item:  # compound value crammed into a single-valued field
-                parts = [p.strip() for p in item.split("|") if p.strip()]
-                valid = [p for p in parts if scoring.fold_display(p).lower() in allowed_folded]
-                n_pipe += 1
-                print(f"  rec {rid}: {item!r}")
-                print(f"      -> MANUAL pick one of: {valid or parts}")
-                out.append({"field": field_name, "record_id": rid, "current": item,
-                            "proposed": " OR ".join(valid or parts), "score": "", "action": "manual_pick"})
-                continue
             match, score = _best_match(item, allowed)
-            if score >= min_score:
+            target_use = usage.get(scoring.fold_category(match), 0)
+            if score >= min_score and target_use >= usage[folded]:
                 n_map += 1
-                print(f"  rec {rid}: {item!r}\n      -> {match!r}   (match {score:.0f})")
+                print(f"  rec {rid}: {item!r}")
+                print(f"      -> {match!r}   (match {score:.0f})")
                 out.append({"field": field_name, "record_id": rid, "current": item,
-                            "proposed": match, "score": f"{score:.0f}", "action": "remap"})
+                            "proposed": match, "score": f"{score:.0f}",
+                            "action": "remap"})
+            elif score >= min_score:
+                # Close match, but the option we would rewrite ONTO is rarer in the
+                # data than the value we would rewrite. That points at the option
+                # list, not the records -- do not touch the data on this evidence.
+                n_vocab += 1
+                print(f"  rec {rid}: {item!r}  (used by {usage[folded]} records)")
+                print(f"      -> !! TAXONOMY SUSPECT: nearest option {match!r} "
+                      f"(match {score:.0f}) is used by only {target_use}. "
+                      f"Fix the option list, not these records.")
+                out.append({"field": field_name, "record_id": rid, "current": item,
+                            "proposed": match, "score": f"{score:.0f}",
+                            "action": "taxonomy_suspect"})
             else:
                 n_unsure += 1
-                print(f"  rec {rid}: {item!r}\n      -> ?? no confident match (best {match!r} @ {score:.0f})")
+                print(f"  rec {rid}: {item!r}")
+                print(f"      -> ?? no confident match (best {match!r} @ {score:.0f})")
                 out.append({"field": field_name, "record_id": rid, "current": item,
-                            "proposed": match, "score": f"{score:.0f}", "action": "review"})
+                            "proposed": match, "score": f"{score:.0f}",
+                            "action": "review"})
     print(f"  summary: {n_ok} already valid | {n_map} auto-remap proposed | "
-          f"{n_pipe} pipe/manual | {n_unsure} needs review")
+          f"{n_multi} illegal-multi | {n_vocab} taxonomy suspect | {n_unsure} needs review")
 
 
 def main() -> int:
