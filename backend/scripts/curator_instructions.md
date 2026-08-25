@@ -8,8 +8,8 @@ To judge that, we compare the model's output against the values already recorded
 database and report an agreement score. The problem is that this only tells us how well the model
 matches **one** reading of each paper. It tells us nothing about how hard the task itself is.
 
-Some of these fields are genuinely ambiguous. A paper on a cash transfer conditional on clinic
-attendance can defensibly be filed under Health or Social protection. If two qualified people
+Some of these fields are genuinely ambiguous. A programme that changes how a government runs its
+schools can defensibly be filed under Education or Public administration. If two qualified people
 disagree on cases like that, then a model that "disagrees" with the database is not necessarily
 wrong — it may be doing exactly what a second human would do.
 
@@ -53,10 +53,11 @@ Leave `record_id`, `title` and `md_file` untouched — they link your reading ba
 
 ## What each field means
 
-These definitions are taken from the **DEP extraction protocol for IE v4 (Admin panel)** — the
-same protocol used to produce the existing records — so that your reading and the database follow
-one standard. Where the protocol assumes the admin panel's dropdowns, the equivalent instruction
-for this spreadsheet is given instead.
+These definitions are taken from the **DEP extraction protocol for IE v4 (Admin panel)** and the
+**DEP sector taxonomy guide** — the same standards used to produce the existing records, so that
+your reading and the database follow one standard. Where the protocol assumes the admin panel's
+dropdowns, the equivalent instruction for this spreadsheet is given instead. Where a rule below is
+quoted from those documents it is marked as such; anything unmarked is a worked example, not policy.
 
 **authors** — enter all authors, one per entry, in the order printed. The format is
 `Last name/s, First name Second name`, e.g. `Sabet, Shayda`, `Sabet, Shayda M.`,
@@ -87,9 +88,19 @@ headquarters country: `JPAL` → `United States`, `JPAL Africa` → `South Afric
 **sector_name** — select the ONE sector that captures the intervention being evaluated. Use the
 spelling in the options file. Three recurring judgement calls:
 
-- *Health vs Social protection* — a deworming campaign is Health; a cash transfer conditional on
-  health check-ups is Social protection. The test is whether the core of the intervention is
-  medical care or a monetary transfer.
+- *Cash transfers* — per the **DEP sector taxonomy guide** the **condition determines the
+  sector**, not the fact that money changes hands:
+
+  | cash transfer | sector |
+  |---|---|
+  | unconditional | Social protection |
+  | conditional on health visits | Health |
+  | conditional on school attendance | Education |
+  | conditional on **both** | Social protection (neither aspect is prioritised) |
+
+  That list is not exhaustive — for any other condition, judge by what the condition targets.
+  Interventions with no transfer are unaffected: a deworming campaign or a vitamin
+  supplementation programme is Health.
 - *Public administration vs a sector* — reforming the health ministry is Health. Fiscal
   decentralisation itself is Public administration. Use Public administration only when governance
   is the subject, not merely the deliverer.

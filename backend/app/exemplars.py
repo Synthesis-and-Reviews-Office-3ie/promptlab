@@ -24,7 +24,7 @@ FORMAT (appended to the end of the instruction):
     Answer: Health
     ---
     Paper: "Conditional cash transfers requiring health checkups"
-    Answer: Social protection
+    Answer: Health
     ---
     Paper: "Land titling reform studying property rights institutions"
     Answer: Public administration
