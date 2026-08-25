@@ -63,7 +63,9 @@ archive/
 backups/
 # Curator hand-off packs: contain full paper text + author names (PII).
 double-extraction/
-backend/data/curator2_*
+# Unanchored so it also catches sample_double_extraction.py's default --out,
+# which writes curator2_sheet.csv into the repo ROOT.
+curator2_*
 
 # OneDrive folder-metadata junk
 desktop.ini
