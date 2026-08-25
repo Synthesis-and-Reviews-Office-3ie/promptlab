@@ -27,6 +27,7 @@ import argparse
 import csv
 import json
 import math
+import sys
 from pathlib import Path
 
 from backend.app import analytics, db, scoring
@@ -55,11 +56,31 @@ def _parse(value: str, value_type: str):
     return [p.strip() for p in value.split(LIST_SEPARATOR) if p.strip()]
 
 
+def _show(value) -> str:
+    """Render a stored value compactly for the disagreement dump."""
+    if value is None:
+        return "(none)"
+    if isinstance(value, list):
+        return " | ".join(str(v) for v in value) if value else "(empty)"
+    return str(value)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--project", default="dep-extraction")
     ap.add_argument("--sheet", required=True, help="the CSV the second curator filled in")
+    ap.add_argument("--disagreements", action="store_true",
+                    help="after the summary, list every record where the second reading "
+                         "differs from the existing ground truth")
+    ap.add_argument("--field", help="restrict --disagreements to one field")
     args = ap.parse_args()
+
+    # Author names and taxonomy labels are not ASCII, and a Windows console
+    # defaults to cp1252 -- degrade those characters instead of dying mid-report.
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except (AttributeError, OSError):
+        pass
 
     sheet = Path(args.sheet)
     with sheet.open(encoding="utf-8-sig") as fh:
@@ -99,6 +120,7 @@ def main() -> None:
     print(header)
     print("-" * len(header))
 
+    per_record: dict[str, list[tuple[int, object, object]]] = {}
     skipped = []
     for field, spec in FIELDS.items():
         pairs = []
@@ -111,6 +133,7 @@ def main() -> None:
             if second is None or second == []:
                 continue  # curator left it blank: no second reading to compare
             pairs.append({"predicted": second, "truth": truth})
+            per_record.setdefault(field, []).append((rid, second, truth))
 
         if not pairs:
             skipped.append(field)
@@ -141,6 +164,32 @@ def main() -> None:
     for field in FIELDS:
         metric_name, threshold = scoring.gate_for(field)
         print(f"  {field:22s} {metric_name or 'f1':8s} >= {threshold:.2f}")
+
+    if not args.disagreements:
+        return
+
+    print()
+    print("=" * 78)
+    print("Per-record disagreements: second reader vs. existing ground truth")
+    print("Scored with scoring.score_field, so matches the concordance-aware scorer")
+    print("already forgives (accents, mojibake, fuzzy, 'A | B') are NOT listed here.")
+
+    for field, recs in per_record.items():
+        if args.field and field != args.field:
+            continue
+        differing = []
+        for rid, second, truth in recs:
+            res = scoring.score_field(field, second, truth)
+            if res.score < 1.0:
+                differing.append((rid, res, second, truth))
+        print()
+        print(f"--- {field}: {len(differing)} of {len(recs)} records differ ---")
+        for rid, res, second, truth in sorted(differing, key=lambda t: t[1].score):
+            print(f"  record {rid}  (score {res.score:.2f})")
+            print(f"      ground truth : {_show(truth)}")
+            print(f"      second reader: {_show(second)}")
+            if res.explanation:
+                print(f"      why: {res.explanation}")
 
 
 if __name__ == "__main__":

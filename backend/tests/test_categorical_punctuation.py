@@ -4,7 +4,8 @@ Production bug this fixes: the taxonomy handed to the model says
 "Agriculture fishing and forestry" while the ground truth says
 "Agriculture, fishing, and forestry". Scoring required exact equality after
 `_norm`, which keeps punctuation, so 22 of 100 sector_name records were
-unwinnable — models were marked wrong for obeying our own option list.
+unwinnable -- models were marked wrong for obeying our own option list. The same divergence
+also appears as "&" vs the word "and" (59 of 7,623 records); both fold.
 """
 from __future__ import annotations
 
@@ -23,14 +24,23 @@ class TestFoldCategory:
     def test_real_taxonomy_variants_collapse(self, a, b):
         assert scoring.fold_category(a) == scoring.fold_category(b)
 
-    def test_ampersand_variant_is_NOT_handled(self):
-        # Documents a real remaining gap: 'Information & communications
-        # technologies' (ground truth) still won't match the taxonomy's
-        # '...and communications...'. Punctuation folding drops the "&" rather
-        # than expanding it to "and", so this one record stays unwinnable.
-        # Fixing it means normalising the ground-truth value, not more folding.
-        assert scoring.fold_category("Information & communications technologies") != \
-               scoring.fold_category("Information and communications technologies")
+    def test_ampersand_variant_folds_to_the_word_and(self):
+        # REVERSED 2026-08-25; this previously asserted the opposite.
+        #
+        # Scope, measured rather than assumed: 59 of 7,623 sector_name ground-truth
+        # records (0.8%) use the '&' spelling, but only 1 of the 208 records that
+        # currently have model runs. So the old note calling it 'one record' was
+        # right about today's evaluation set, and the fix is not worth much score.
+        # It is here because an unwinnable comparison is a defect whatever its
+        # frequency, and because the affected share of the master data is 75x the
+        # extracted share -- it grows as the rollout grows.
+        #
+        # The old note preferred normalising the ground-truth value over folding.
+        # Folding was chosen because the ground truth is the answer key and editing
+        # it is human-gated by design, while an ampersand-vs-and divergence is a
+        # spelling difference the comparison should absorb wherever it turns up.
+        assert (scoring.fold_category("Information & communications technologies")
+                == scoring.fold_category("Information and communications technologies"))
 
     def test_genuinely_different_categories_stay_different(self):
         assert scoring.fold_category("Health") != scoring.fold_category("Education")

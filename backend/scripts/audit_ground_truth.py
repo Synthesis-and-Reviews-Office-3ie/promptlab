@@ -57,11 +57,14 @@ def _load_gt(conn, field_name: str) -> list[tuple[int, str, object]]:
 
 
 def _as_items(value) -> list[str]:
-    if isinstance(value, list):
-        return [str(x) for x in value]
-    if value in (None, ""):
-        return []
-    return [str(value)]
+    # Delegate to the scorer so the audit sees values the way scoring sees them.
+    # Multi-valued reference data is recorded two ways -- a JSON array, and one
+    # pipe-joined string ("Primary education | Secondary education"). Comparing the
+    # joined string whole against the option list reported every legitimate
+    # two-value entry as an invalid category: 208 of them on sub_sector, which
+    # buried the handful of real ones and inflated the distinct-category count to
+    # 149 of 66 allowed.
+    return scoring.as_value_list(value)
 
 
 def _has_encoding_noise(s: str) -> bool:
@@ -131,13 +134,21 @@ def audit_field(conn, field_name: str, issues: list[dict]) -> None:
     # --- categorical: values outside taxonomy + rare categories ---
     if spec.taxonomy_key:
         allowed = get_options(spec.taxonomy_key)
-        allowed_folded = {scoring.fold_display(a).lower() for a in allowed}
+        # fold_category, not fold_display: the scorer compares closed-taxonomy
+        # values with punctuation and '&'/'and' folded, so anything less strict here
+        # flags values the scorer actually matches.
+        allowed_folded = {scoring.fold_category(a) for a in allowed}
         counts: Counter = Counter()
+        display: dict[str, str] = {}   # folded key -> a representative raw spelling
         invalid = []
         for rid, _t, v in data:
             for item in _as_items(v):
-                counts[item] += 1
-                if scoring.fold_display(item).lower() not in allowed_folded:
+                # Key on the folded form: otherwise two spellings of one category
+                # count as two, and each shows up as its own "rare category".
+                key = scoring.fold_category(item)
+                counts[key] += 1
+                display.setdefault(key, item)
+                if scoring.fold_category(item) not in allowed_folded:
                     invalid.append((rid, item))
         print(f"  distinct categories used: {len(counts)} / {len(allowed)} allowed")
         print(f"  values NOT in the allowed taxonomy: {len(invalid)}")
@@ -148,9 +159,39 @@ def audit_field(conn, field_name: str, issues: list[dict]) -> None:
         rare = [(c, n) for c, n in counts.items() if n <= 2]
         print(f"  rare categories (<=2 records, hard to learn/measure): {len(rare)}")
         for cat, n in sorted(rare)[:MAX_EXAMPLES]:
-            print(f"      {cat!r}: {n}")
+            print(f"      {display.get(cat, cat)!r}: {n}")
             issues.append({"field": field_name, "issue": "rare_category", "record_id": "",
-                           "value": cat, "detail": f"n={n}"})
+                           "value": display.get(cat, cat), "detail": f"n={n}"})
+
+
+def audit_bucket_parents(conn, issues: list[dict]) -> None:
+    """A "Public admin - X" / "Other - X" sub-sector belongs to sector X, so X must
+    equal the record's own sector_name. 1,371 of 1,376 bucket values agree, which
+    makes the handful that do not look like data-entry slips rather than a second
+    convention. Found by hand while explaining why a second reader disagreed on
+    sub_sector; kept here so it stays found.
+    """
+    sec = {rid: (scoring.as_value_list(v) or [""])[0]
+           for rid, _t, v in _load_gt(conn, "sector_name")}
+    total = bad = 0
+    print()
+    print("=" * 78)
+    print("CROSS-FIELD: sub_sector bucket suffix vs sector_name")
+    for rid, _t, v in _load_gt(conn, "sub_sector"):
+        for item in _as_items(v):
+            for prefix in ("Public admin - ", "Other - "):
+                if not item.startswith(prefix):
+                    continue
+                total += 1
+                suffix = item[len(prefix):]
+                own = sec.get(rid, "")
+                if own and scoring.fold_category(suffix) != scoring.fold_category(own):
+                    bad += 1
+                    print(f"      rec {rid}: sector={own!r} but sub_sector={item!r}")
+                    issues.append({"field": "sub_sector", "issue": "bucket_parent_mismatch",
+                                   "record_id": rid, "value": item,
+                                   "detail": f"sector_name={own}"})
+    print(f"  bucket values whose suffix != the record's own sector: {bad} of {total}")
 
 
 def main() -> int:
@@ -159,11 +200,21 @@ def main() -> int:
     ap.add_argument("--csv", help="also write all flagged issues to this CSV path")
     args = ap.parse_args()
 
+    # This report prints author names and taxonomy labels verbatim. A cp1252
+    # Windows console raises on combining diacritics, which killed the run partway
+    # through the authors field -- degrade those characters instead.
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except (AttributeError, OSError):
+        pass
+
     fields = [args.field] if args.field else list(FIELDS)
     issues: list[dict] = []
     with db.get_conn() as conn:  # get_conn already sets sqlite3.Row row_factory
         for f in fields:
             audit_field(conn, f, issues)
+        if not args.field:
+            audit_bucket_parents(conn, issues)
 
     print(f"\n{'=' * 78}\nTOTAL flagged issues: {len(issues)}")
     by_kind = Counter(i["issue"] for i in issues)
