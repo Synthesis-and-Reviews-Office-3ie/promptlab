@@ -114,6 +114,25 @@ Record **every** sub-sector that applies, separated with a vertical bar, exactly
 directs. Most papers have one. Where a paper genuinely spans two — a school-feeding trial is both
 an education and a nutrition question — record both rather than choosing.
 
+Two of the options are catch-all buckets, and the first double-extraction round showed
+they cause most of the disagreement on this field, so please read this part carefully.
+
+- **`Other - <sector>`** — use only when the paper clearly sits in that sector but no
+  specific sub-sector in it fits. Reach for a specific sub-sector first.
+- **`Public admin - <sector>`** — for the public-administration or governance slice of that
+  sector: the paper is about how government regulates, taxes, funds or administers the
+  sector, rather than about the sector's own activity. Note these records still take the
+  substantive sector as their `sector_name`, **not** Public administration.
+- In both cases the **suffix must name the sector you chose above**. If you picked
+  Energy and extractives, the bucket is `Other - Energy and extractives`, never
+  `Other - Industry, trade and services`.
+
+> These three rules are **observed in the existing reference data**, not quoted from a
+> protocol document: of 1,376 bucket values recorded there, 1,371 (99.6%) have a suffix
+> matching their own sector; `Public admin - <sector>` accounts for 11% of sub-sector
+> values and `Other - <sector>` for 6%. If the core team's guidance differs, their
+> guidance wins — please tell us, because we will have been scoring against the wrong rule.
+
 ## When you are done
 
 Send the filled CSV back. We will score your reading against the existing values using the same
