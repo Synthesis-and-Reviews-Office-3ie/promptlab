@@ -201,7 +201,15 @@ def fold_category(s: str) -> str:
 
     Scoped to categorical comparison only; never apply it to list_text values.
     """
-    return " ".join(re.sub(r"[^\w\s]", " ", _norm(s)).split())
+    # An "&" and the word "and" are the same conjunction, but stripping
+    # punctuation turns "A & B" into "A B" while "A and B" keeps the word, so the
+    # two spellings folded to DIFFERENT categories. The reference data writes
+    # "Information & communications technologies" (59 records) where the option
+    # list handed to the model writes "... and ...", so every one of those was
+    # unwinnable -- the same failure this function was written to fix, one
+    # character short. Normalise the conjunction before dropping punctuation.
+    s = _norm(s).replace("&", " and ")
+    return " ".join(re.sub(r"[^\w\s]", " ", s).split())
 
 
 def _fuzzy_equal(a: str, b: str, threshold: int = FUZZY_MATCH_THRESHOLD) -> bool:
