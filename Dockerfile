@@ -1,4 +1,4 @@
-# Read-only observability API for the DEP prompt lab, packaged for Fly.io.
+# Read-only observability API for the DEP prompt lab (ran on Fly.io until November 2026).
 #
 # This image contains ONLY the FastAPI app code (backend/app, backend/scripts
 # for maintenance tasks, backend/models.yaml). It does NOT bake in the

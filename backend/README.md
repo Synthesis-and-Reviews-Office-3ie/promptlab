@@ -319,6 +319,8 @@ already migrated. Additive per-run columns (`excerpt`, `notes`, `honesty_score`,
 
 ## Production deployment (Fly.io)
 
+> **History.** The Fly.io app (`dep-promptlab-api`) was cancelled in November 2026, so promptlab is **not deployed**. The GitHub Pages frontend still points `VITE_API_BASE_URL` at the old Fly address, so it shows no data. `fly.toml` and the Fly helper scripts were removed. This section records how it ran.
+
 The dashboard is meant to keep working even when the developer's laptop is off, so the API is
 deployed as an always-on Fly.io app serving a **fixed, one-time production dataset** — not the
 full 7,675-record local corpus, and not a recurring/scheduled extraction job. Both

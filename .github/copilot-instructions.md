@@ -4,7 +4,7 @@ The canonical agent brief for this repo is **[`../CLAUDE.md`](../CLAUDE.md)**. R
 
 It covers: what this repo is, which document owns which facts, build/run/test commands, the
 prompts-vs-data-vs-code governance rule, the real quality gate per field, optimizer and
-production stop rules, the Fly.io deployment state, and the Windows/flyctl gotchas.
+production stop rules, the deployment state (none since Fly.io was cancelled), and the Windows gotchas.
 
 Nothing is duplicated here deliberately. Until 2026-08-24 this file carried its own copy of that
 material and had drifted badly out of step with the code — it described a 12-model roster (the

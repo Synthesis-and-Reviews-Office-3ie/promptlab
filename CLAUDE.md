@@ -13,7 +13,8 @@ behaviours in code, update this file in the same commit or delete the claim.
 
 - **Frontend** (repo root): React + Vite + TypeScript dashboard → GitHub Pages.
 - **Backend** (`backend/`): FastAPI **read-only** observability API over SQLite, plus the
-  scoring / optimizer / supervisor engine → Fly.io.
+  scoring / optimizer / supervisor engine. **Not deployed** since the Fly.io app was cancelled in
+  November 2026.
 - **Engine**: an autonomous prompt-optimization loop that extracts structured metadata (authors,
   author affiliations, author-institution countries, sector, sub-sector) from impact-evaluation
   studies for 3ie's Development Evidence Portal, scores it against human-curated ground truth, and
@@ -72,7 +73,7 @@ that is the reward-hacking surface.
 - **Prompts** → autonomous, within the gate.
 - **Data** (ground truth, taxonomy) → human-approved. `scripts/audit_ground_truth.py` and
   `scripts/propose_gt_fixes.py` are **read-only** by design; keep them that way.
-- **Code / eval-logic** → GitHub PR → human review → `fly deploy`.
+- **Code / eval-logic** → GitHub PR → human review → deploy.
 
 ## The quality gate — what it actually is
 
@@ -130,42 +131,21 @@ Model roster — `backend/models.yaml`: **4 models, 3 families** (trimmed from 1
 because cycling 12 through plateaued fields burned credits for no signal). The 4th
 (`deepseek-v4-flash`) exists to be the cross-family holdout reference.
 
-## Production (Fly.io) — read `backend/README.md` before acting
+## Production: none
 
-`fly.toml`: app `dep-promptlab-api`, region `iad`, volume `dep_data` at `/data`,
-`min_machines_running = 1`, `auto_stop_machines = 'off'`, performance-2x / 4096mb.
-Env: `DEP_DB_PATH=/data/promptlab.db`, `DEP_MD_DIR=/data/corpus`.
+The Fly.io app (`dep-promptlab-api`) was cancelled in November 2026, so promptlab is **not deployed**.
+The GitHub Pages frontend still points `VITE_API_BASE_URL` at the old Fly address, so it shows no data.
 
-**The deployed image is a read-only API. Background agents are OFF by default.**
-`entrypoint.sh` starts `worker` + `supervisor` **only** when `DEP_ENABLE_AGENTS=1`; a normal deploy
-runs uvicorn alone. This changed on 2026-08-20 — a dead Neon Postgres had made the worker busy-loop
-and pin the always-on machine. So:
+The container image (`Dockerfile`, `entrypoint.sh`) still builds and can be moved to another host.
+It is a **read-only API**, and it starts the `worker` + `supervisor` only when `DEP_ENABLE_AGENTS=1`.
+Neon Postgres is dead as well, and `api.py` tolerates a missing Postgres by design: don't "fix" that
+try/except. How the Fly deployment worked is kept as history in `backend/README.md`.
 
-- A normal `fly deploy` leaves **no** supervisor running. Do not assume one is there.
-- Before launching daemons by hand, check what is actually running
-  (`fly ssh console -C "sh /data/list_procs2.sh"`) and **kill any existing set first** — two
-  supervisors double-enqueue work and double the API spend.
-- Neon Postgres is **dormant** (free tier quota-exhausted) and `DATABASE_URL` is currently **unset**
-  on Fly, so the supervisor falls back to direct shell-out. `api.py` tolerates a dead Postgres by
-  design; don't "fix" that try/except.
+## Environment gotchas (Windows)
 
-`backend deploy` ships only `backend/app`, `backend/scripts`, `models.yaml`, `backend/__init__.py` —
-the DB and corpus live on the `/data` volume, so redeploys don't re-upload data.
-
-## Environment gotchas (Windows + flyctl)
-
-- **`fly ssh console -C "..."` always exits 1 on Windows** — a flyctl SSH-cleanup bug. The remote
-  command *did* run. Same for `fly deploy` and `git push` showing red `NativeCommandError`. Read the
-  output, not the exit code. Append `; $LASTEXITCODE = 0` to silence it.
-- **Use [`fly_helpers.ps1`](fly_helpers.ps1)**: `. .\fly_helpers.ps1` then `Launch-Daemons`,
-  `Show-Procs`, `Show-SupervisorLog`, `Kill-Daemons` — they suppress the noise for you.
-- `fly ssh console -C` breaks on pipes, nested quotes and `$!`. Put anything complex in a `.sh`,
-  `fly ssh sftp put` it to `/data`, then run `sh /data/x.sh`. **sftp refuses to overwrite** — `rm -f`
-  the remote file first. The container has **no `ps`/`pkill`**; use the `/proc`-scan helpers on
-  `/data` (`list_sup.sh`, `list_procs2.sh`, `kill_all.sh`, `launch_all_new.sh`).
+- `git push` can show a red `NativeCommandError` in PowerShell even when it worked. Read the output, not
+  the exit code.
 - **`*.sh` must stay LF.** `.gitattributes` enforces it — a CRLF `entrypoint.sh` breaks the container.
-- Inspect prod read-only: `fly ssh sftp get /data/promptlab.db <local>`, then work on the copy. Never
-  casually point a write-script at the live volume DB.
 - OpenRouter `~author/family-latest` aliases need the literal leading `~`.
 - `run_extraction.py` commits each `(record, model)` result as it completes and skips already-done
   non-errored pairs, so an interrupted run resumes cleanly and errored records are retried.
@@ -188,9 +168,8 @@ This folder lives inside **OneDrive**, so anything on disk is synced. Keep it sm
   workspace (`archive/`, `backups/`, `double-extraction/`, `*.xlsx`, `*.docx`, `*.pdf`, `*.zip`).
   `double-extraction/` and `backend/data/curator2_*` contain **full paper text and author names —
   PII**. Keep them out of git, out of the Docker context, and out of anything you publish.
-- `archive/` is reference-only, `ops/` is undocumented ad-hoc operational scripts from July 2026 —
-  only `launch_all_new.sh` and `list_procs2.sh` are known-live (via `fly_helpers.ps1`). Treat the
-  rest as unverified before running any of it.
+- `archive/` is reference-only. `ops/` holds ad-hoc scripts from July 2026, most written to run inside
+  the Fly container's `/data` volume. Fly is gone, so none of them is live. Treat them as unverified.
 
 ## Current work
 

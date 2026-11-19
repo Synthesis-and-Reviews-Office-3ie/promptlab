@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Agent instructions for this repo live in **[`CLAUDE.md`](CLAUDE.md)** — build/run commands,
-governance rules, the quality gate, optimizer stop rules, and the Windows/flyctl gotchas.
+governance rules, the quality gate, optimizer stop rules, and the Windows gotchas.
 
 Read that file. Nothing project-specific is duplicated here on purpose: two copies of the same
 facts is how the previous version of these instructions ended up describing a gate, a model roster

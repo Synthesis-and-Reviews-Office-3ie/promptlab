@@ -70,12 +70,11 @@ npm run dev        # http://localhost:5173/promptlab/
 ```
 
 The frontend reads from the API at `VITE_API_BASE_URL` (defaults to the local dev server
-`http://127.0.0.1:8000`; in production it points at the Fly.io deployment). Start the backend with
+`http://127.0.0.1:8000`; the production build still points at the cancelled Fly.io app). Start the backend with
 `python -m backend.scripts.serve` — see [`backend/README.md`](backend/README.md).
 
 ## Deploy
 
 - **Frontend** → GitHub Pages, on push to `main`.
-- **Backend** → `fly deploy` (always-on Fly.io app; the autonomous supervisor daemon runs there).
-  The full build → rollout → deploy sequence is in
-  [`backend/README.md`](backend/README.md#production-deployment-flyio).
+- **Backend** → not deployed. The Fly.io app was cancelled in November 2026. How it ran is kept as
+  history in [`backend/README.md`](backend/README.md#production-deployment-flyio).

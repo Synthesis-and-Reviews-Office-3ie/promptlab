@@ -1,5 +1,5 @@
 #!/bin/sh
-# Entrypoint for Fly.io.
+# Container entrypoint (ran on Fly.io until November 2026).
 #
 # This image is a READ-ONLY observability API (serves the SQLite DB at
 # DEP_DB_PATH). The background agents (worker + supervisor) are DISABLED by

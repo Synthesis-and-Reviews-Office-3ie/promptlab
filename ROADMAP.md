@@ -6,6 +6,9 @@ Keep entries short; move anything that becomes "current lasting state" into the 
 
 ## Multi-client deployment — per-Fly-app isolation (chosen: Option 3)
 
+> **Superseded (November 2026).** Fly.io was cancelled and `provision_project.py` was removed. If this
+> returns, choose the host first (see `Gen AI tools/SERVICES_TRANSITION_PLAN.md`).
+
 Each client project (GE, HSF, StrongMinds, new DEP screening, etc.) gets its **own Fly.io app**:
 own machine, own `/data` volume, own supervisor, own URL. No shared DB, no tenant isolation
 headaches, complete blast radius isolation between clients.
