@@ -75,6 +75,7 @@ The frontend reads from the API at `VITE_API_BASE_URL` (defaults to the local de
 
 ## Deploy
 
-- **Frontend** → GitHub Pages, on push to `main`.
+- **Frontend** → not published. GitHub Pages and its `deploy.yml` workflow were switched off on
+  20 November 2026, because without an API the dashboard shows no data. Run it locally instead.
 - **Backend** → not deployed. The Fly.io app was cancelled in November 2026. How it ran is kept as
   history in [`backend/README.md`](backend/README.md#production-deployment-flyio).

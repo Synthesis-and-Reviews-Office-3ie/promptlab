@@ -158,8 +158,6 @@ doc.add_paragraph("")
 doc.add_paragraph("Best,")
 doc.add_paragraph("Lucas")
 
-out = Path(
-    r"C:\Users\LucasSempe\OneDrive - International Initiative for Impact Evaluation\Desktop\DEP\promptlab_intro_email.docx"
-)
+out = Path(__file__).resolve().parent / "promptlab_intro_email.docx"
 doc.save(out)
 print(f"Saved: {out}")

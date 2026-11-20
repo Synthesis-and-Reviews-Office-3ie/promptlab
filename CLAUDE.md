@@ -9,7 +9,7 @@ behaviours in code, update this file in the same commit or delete the claim.
 
 ## What this repo is
 
-`github.com/lsempe77/promptlab` — one repo, three parts:
+`github.com/Synthesis-and-Reviews-Office-3ie/promptlab` (moved from `lsempe77` on 2026-11-20) is one repo with three parts:
 
 - **Frontend** (repo root): React + Vite + TypeScript dashboard → GitHub Pages.
 - **Backend** (`backend/`): FastAPI **read-only** observability API over SQLite, plus the
@@ -134,7 +134,14 @@ because cycling 12 through plateaued fields burned credits for no signal). The 4
 ## Production: none
 
 The Fly.io app (`dep-promptlab-api`) was cancelled in November 2026, so promptlab is **not deployed**.
-The GitHub Pages frontend still points `VITE_API_BASE_URL` at the old Fly address, so it shows no data.
+The GitHub Pages frontend is **switched off** (20 November 2026): the repo moved to the
+`Synthesis-and-Reviews-Office-3ie` organisation, and the `deploy.yml` workflow is disabled on GitHub,
+because the dashboard would show no data without an API. Re-enable the workflow only together
+with a live API.
+
+**Status: frozen.** The portfolio registry (`Gen AI tools/_portfolio/`) records promptlab as frozen.
+Its gate, scoring and stop-rule code is to become a shared library for the Assay lab and
+EvidenceLoop. Add no new features here.
 
 The container image (`Dockerfile`, `entrypoint.sh`) still builds and can be moved to another host.
 It is a **read-only API**, and it starts the `worker` + `supervisor` only when `DEP_ENABLE_AGENTS=1`.
