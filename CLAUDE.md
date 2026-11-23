@@ -39,12 +39,13 @@ If this file and that section disagree, that section wins — check it first.
 
 ## Build / run / test
 
-Python env is a local **`.venv/`** at the repo root (created 2026-08-21). Run backend modules as
-packages **from the repo root**, never as file paths — they rely on package-relative imports:
+Python env for this clone is **`C:\dev\venvs\promptlab`** (shared-venv convention; the old
+OneDrive copy used a local `.venv/` at its repo root). Run backend modules as packages
+**from the repo root**, never as file paths — they rely on package-relative imports:
 
 ```bash
-.venv/Scripts/python -m backend.scripts.serve        # local API → http://127.0.0.1:8000
-.venv/Scripts/python -m backend.scripts.<name>       # any other script
+C:\dev\venvs\promptlab\Scripts\python -m backend.scripts.serve   # local API → http://127.0.0.1:8000
+C:\dev\venvs\promptlab\Scripts\python -m backend.scripts.<name>  # any other script
 ```
 
 Set `$env:DEP_DB_PATH` to aim a script at a specific DB. The DB and corpus are **not** in the repo
@@ -164,11 +165,15 @@ try/except. How the Fly deployment worked is kept as history in `backend/README.
 
 ## Repo hygiene
 
-This folder lives inside **OneDrive**, so anything on disk is synced. Keep it small:
+This folder lives at **`C:\dev\promptlab`** (moved out of OneDrive on 2026-11-23, the SOTA_PLAN
+milestone 3 pilot). GitHub is its backup. The OneDrive copy at `Gen AI tools/apps/promptlab` is
+kept untouched for a cooling-off period — work here, not there. Keep it small:
 
 - Regenerable caches (`.mypy_cache/`, `__pycache__/`, `node_modules/`, `.venv/`, `dist/`) are
-  gitignored but *still sync*. If your editor runs mypy, set `MYPY_CACHE_DIR` to a path outside
-  this folder — it otherwise grows a separate multi-hundred-MB cache per directory it runs in.
+  gitignored; rebuild them rather than copying. The Python environment for this clone lives at
+  `C:\dev\venvs\promptlab` (shared-venv convention, `C:\dev\CLAUDE.md`). If your editor runs
+  mypy, set `MYPY_CACHE_DIR` to a path outside this folder — it otherwise grows a separate
+  multi-hundred-MB cache per directory it runs in.
 - Large local data (prod DB snapshots, the inspection DB, the stale-backend tarball) lives **outside
   OneDrive** at `C:\Users\LucasSempe\promptlab-local-data\`. Don't move it back in.
 - `.gitignore` and `.dockerignore` both deliberately exclude the material merged from the old DEP
